@@ -87,7 +87,7 @@ def criar_pagamento(nome_usuario, telegram_id):
     if response.status_code == 201:
         preference = response.json()
         # Atenção: Aqui vamos buscar o SANDBOX_INIT_POINT para gerar link de teste
-        return preference["sandbox_init_point"]
+        return preference["init_point"]
     else:
         print("Erro ao criar pagamento:", response.text)
         return None
