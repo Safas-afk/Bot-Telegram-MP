@@ -43,7 +43,7 @@ def connect_to_sheet(sheet_name):
     return sheet
 
 def save_user_data(user_id, user_data):
-    sheet = connect_to_sheet("Cadastros_Grupo_Free")  # Nome da planilha Free
+    sheet = connect_to_sheet("Cadastros_Grupo_Free")
     data = [
         str(user_id),
         user_data["nome"],
@@ -80,13 +80,14 @@ def criar_pagamento(nome_usuario, telegram_id):
             "pending": "https://www.google.com"
         },
         "auto_return": "approved",
-        "notification_url": "https://SEU_DOMINIO/webhook"  # Substituir pelo seu link do Railway
+        "notification_url": "https://airy-reverence-production.up.railway.app"  # <- Corrija depois para seu domínio Railway
     }
     response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code == 201:
         preference = response.json()
-        return preference["init_point"]
+        # Atenção: Aqui vamos buscar o SANDBOX_INIT_POINT para gerar link de teste
+        return preference["sandbox_init_point"]
     else:
         print("Erro ao criar pagamento:", response.text)
         return None
@@ -126,13 +127,12 @@ async def area(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     save_user_data(user_id, context.user_data)
 
-    link_convite = "https://t.me/+3fP-Bzc0tVhjNjdh"  # <-- Coloque o link do seu Grupo Free aqui
+    link_convite = "https://t.me/+3fP-Bzc0tVhjNjdh"  # <-- Link do Grupo Free correto
 
     await update.message.reply_text(
         f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{link_convite}"
     )
     return ConversationHandler.END
-
 
 async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome_usuario = update.effective_user.first_name
@@ -151,6 +151,7 @@ async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Erro ao gerar link de pagamento. Tente novamente mais tarde.")
 
+# Aplicação principal
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 conv_handler = ConversationHandler(
