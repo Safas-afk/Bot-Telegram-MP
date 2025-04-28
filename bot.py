@@ -127,12 +127,17 @@ async def area(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     save_user_data(user_id, context.user_data)
 
-    link_convite = "https://t.me/+3fP-Bzc0tVhjNjdh"  # <-- Link do Grupo Free correto
+    # Gerar link de convite exclusivo para o Grupo Free
+    new_invite = await context.bot.create_chat_invite_link(
+        chat_id=GRUPO_FREE_ID,
+        member_limit=1  # Limita para 1 uso
+    )
 
     await update.message.reply_text(
-        f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{link_convite}"
+        f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{new_invite.invite_link}"
     )
     return ConversationHandler.END
+
 
 async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome_usuario = update.effective_user.first_name
