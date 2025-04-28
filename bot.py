@@ -80,7 +80,7 @@ def criar_pagamento(nome_usuario, telegram_id):
             "pending": "https://www.google.com"
         },
         "auto_return": "approved",
-        "notification_url": "https://airy-reverence-production.up.railway.app/webhook"  # <- Corrija depois para seu domínio Railway
+        "notification_url": "https://airy-reverence.railway.internal/webhook"  # <- Corrija depois para seu domínio Railway
     }
     response = requests.post(url, headers=headers, json=payload)
 
