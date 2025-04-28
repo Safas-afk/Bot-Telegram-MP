@@ -126,9 +126,13 @@ async def area(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     save_user_data(user_id, context.user_data)
 
-    await update.message.reply_text("Cadastro concluído! ✅ Você será adicionado ao nosso Grupo Free.")
-    await context.bot.add_chat_members(GRUPO_FREE_ID, [user_id])
+    link_convite = "https://t.me/+3fP-Bzc0tVhjNjdh"  # <-- Coloque o link do seu Grupo Free aqui
+
+    await update.message.reply_text(
+        f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{link_convite}"
+    )
     return ConversationHandler.END
+
 
 async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome_usuario = update.effective_user.first_name
