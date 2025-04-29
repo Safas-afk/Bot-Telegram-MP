@@ -2,6 +2,7 @@ import os
 import gspread
 import requests
 import json
+import re
 from oauth2client.service_account import ServiceAccountCredentials
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import (
@@ -15,7 +16,7 @@ GRUPO_FREE_ID = int(os.getenv('GRUPO_FREE_ID'))
 GRUPO_VIP_ID = int(os.getenv('GRUPO_VIP_ID'))
 
 # Estados do cadastro
-NOME, IDADE, GENERO, ESTADO, EMAIL, AREA = range(6)
+NOME, IDADE, GENERO, ESTADO, EMAIL, AREA, CNPJS = range(7)
 
 genero_options = [["Masculino", "Feminino", "Outro"]]
 estado_options = [
@@ -51,7 +52,8 @@ def save_user_data(user_id, user_data):
         user_data["genero"],
         user_data["estado"],
         user_data["email"],
-        user_data["area"]
+        user_data["area"],
+        user_data["cnpj"]
     ]
     sheet.append_row(data)
 
@@ -80,13 +82,12 @@ def criar_pagamento(nome_usuario, telegram_id):
             "pending": "https://www.google.com"
         },
         "auto_return": "approved",
-        "notification_url": "https://airy-reverence.railway.internal/webhook"  # <- Corrija depois para seu domínio Railway
+        "notification_url": "https://SEU_DOMINIO/webhook"  # Substitua pelo seu domínio do Railway
     }
     response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code == 201:
         preference = response.json()
-        # Atenção: Aqui vamos buscar o SANDBOX_INIT_POINT para gerar link de teste
         return preference["init_point"]
     else:
         print("Erro ao criar pagamento:", response.text)
@@ -123,21 +124,38 @@ async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def area(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["area"] = update.message.text
+    await update.message.reply_text(
+        "Agora envie até 3 CNPJs (separados por vírgula, espaço ou quebra de linha).\n\n"
+        "Exemplo:\n12345678000199, 99887766000188"
+    )
+    return CNPJS
+
+async def cnpjs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    texto = update.message.text
+    cnpjs_encontrados = re.findall(r'\d{14}', texto)
+
+    if not cnpjs_encontrados:
+        await update.message.reply_text("Nenhum CNPJ válido encontrado. Por favor, envie até 3 CNPJs com 14 dígitos.")
+        return CNPJS
+
+    if len(cnpjs_encontrados) > 3:
+        await update.message.reply_text("Você enviou mais de 3 CNPJs. Por favor, envie no máximo 3.")
+        return CNPJS
+
+    context.user_data["cnpj"] = ", ".join(cnpjs_encontrados)
 
     user_id = update.effective_user.id
     save_user_data(user_id, context.user_data)
 
-    # Gerar link de convite exclusivo para o Grupo Free
     new_invite = await context.bot.create_chat_invite_link(
         chat_id=GRUPO_FREE_ID,
-        member_limit=1  # Limita para 1 uso
+        member_limit=1
     )
 
     await update.message.reply_text(
         f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{new_invite.invite_link}"
     )
     return ConversationHandler.END
-
 
 async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome_usuario = update.effective_user.first_name
@@ -168,6 +186,7 @@ conv_handler = ConversationHandler(
         ESTADO: [MessageHandler(filters.TEXT & ~filters.COMMAND, estado)],
         EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, email)],
         AREA: [MessageHandler(filters.TEXT & ~filters.COMMAND, area)],
+        CNPJS: [MessageHandler(filters.TEXT & ~filters.COMMAND, cnpjs)],
     },
     fallbacks=[]
 )
