@@ -15,7 +15,6 @@ ACCESS_TOKEN_MP = os.getenv('ACCESS_TOKEN_MP')
 GRUPO_FREE_ID = int(os.getenv('GRUPO_FREE_ID'))
 GRUPO_VIP_ID = int(os.getenv('GRUPO_VIP_ID'))
 
-# Estados do cadastro
 NOME, IDADE, GENERO, ESTADO, EMAIL, AREA, CNPJS = range(7)
 
 genero_options = [["Masculino", "Feminino", "Outro"]]
@@ -70,25 +69,21 @@ def criar_pagamento(nome_usuario, telegram_id):
             "currency_id": "BRL",
             "unit_price": 49.00
         }],
-        "payer": {
-            "name": nome_usuario
-        },
-        "metadata": {
-            "telegram_id": str(telegram_id)
-        },
+        "payer": {"name": nome_usuario},
+        "metadata": {"telegram_id": str(telegram_id)},
         "back_urls": {
             "success": "https://www.google.com",
             "failure": "https://www.google.com",
             "pending": "https://www.google.com"
         },
         "auto_return": "approved",
-        "notification_url": "https://SEU_DOMINIO/webhook"  # Substitua pelo seu domínio do Railway
+        "notification_url": "https://SEU_DOMINIO/webhook"
     }
     response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code == 201:
         preference = response.json()
-        return preference["sandbox_init_point"]
+        return preference.get("sandbox_init_point")
     else:
         print("Erro ao criar pagamento:", response.text)
         return None
@@ -147,14 +142,17 @@ async def cnpjs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     save_user_data(user_id, context.user_data)
 
-    new_invite = await context.bot.create_chat_invite_link(
-        chat_id=GRUPO_FREE_ID,
-        member_limit=1
-    )
+    try:
+        new_invite = await context.bot.create_chat_invite_link(
+            chat_id=GRUPO_FREE_ID,
+            member_limit=1
+        )
+        await update.message.reply_text(
+            f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{new_invite.invite_link}"
+        )
+    except Exception as e:
+        await update.message.reply_text(f"Erro ao gerar convite do grupo: {e}")
 
-    await update.message.reply_text(
-        f"Cadastro concluído! ✅\n\nClique no link abaixo para acessar nosso Grupo Free:\n\n{new_invite.invite_link}"
-    )
     return ConversationHandler.END
 
 async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -172,9 +170,12 @@ async def assinar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
     else:
-        await update.message.reply_text("Erro ao gerar link de pagamento. Tente novamente mais tarde.")
+        await update.message.reply_text("Erro ao gerar link de pagamento. Verifique o token ou a URL do webhook.")
 
-# Aplicação principal
+async def meu_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    await update.message.reply_text(f"ID deste chat: {chat.id}")
+
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 conv_handler = ConversationHandler(
@@ -193,6 +194,7 @@ conv_handler = ConversationHandler(
 
 app.add_handler(conv_handler)
 app.add_handler(CommandHandler("assinar", assinar))
+app.add_handler(CommandHandler("meuid", meu_id))
 
 print("Bot rodando!")
 app.run_polling()
