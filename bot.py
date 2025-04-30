@@ -69,8 +69,13 @@ def criar_pagamento(nome_usuario, telegram_id):
             "currency_id": "BRL",
             "unit_price": 49.00
         }],
-        "payer": {"name": nome_usuario},
-        "metadata": {"telegram_id": str(telegram_id)},
+        "payer": {
+            "name": nome_usuario,
+            "email": "TESTUSER1310539629@testuser.com"
+        },
+        "metadata": {
+            "telegram_id": str(telegram_id)
+        },
         "back_urls": {
             "success": "https://www.google.com",
             "failure": "https://www.google.com",
